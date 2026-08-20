@@ -24,18 +24,26 @@ connectDB();
 const app = express();
 
 // Middleware
+const configuredFrontend = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/$/, "") : null;
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:5173", // Vite dev server
-  process.env.FRONTEND_URL // Production frontend URL
 ];
+
+if (configuredFrontend) {
+  allowedOrigins.push(configuredFrontend);
+}
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow non-browser requests (like Postman or server-to-server)
+    if (!origin) return callback(null, true);
+    
+    const sanitizedOrigin = origin.replace(/\/$/, "");
+    if (allowedOrigins.includes(sanitizedOrigin) || process.env.NODE_ENV !== "production") {
       callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"));
+      callback(new Error(`Not allowed by CORS: ${origin}`));
     }
   },
   credentials: true
